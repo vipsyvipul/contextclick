@@ -1,52 +1,51 @@
-$(document).ready(function() {
+const store = {};
 
-    var cors_url = "https://cors-anywhere.herokuapp.com/";
+$(document).ready(function () {
+  tippy("a[data-ctxt=true]", {
+    content: `Loading...`,
+    allowHTML: true,
+    onHidden(instance) {
+      instance.setContent(`Loading...`);
+    },
+    async onShow(instance) {
+      const contextUrl = `https://cors-anywhere.herokuapp.com/${instance.reference.href}`;
+      let response;
 
-    $("a[data-ctxt='true']").hover(function() {
+      store[contextUrl] = store[contextUrl] || {};
+      if (!store[contextUrl].data) {
+        const data = await fetch(contextUrl);
+        response = await data.text();
+        store[contextUrl].data = response;
+      } else {
+        response = store[contextUrl].data;
+      }
 
-        var hover_url = $(this).attr('href');
-        var ctxt_url = cors_url + hover_url;
+      const html = $(response);
 
-        //Prepend https://cors-anywhere.herokuapp.com/ to avoid CORS errors
-        $.get(ctxt_url, function(data) {
+      if (!store[contextUrl].title) {
+        store[contextUrl].title = html
+          .filter(`meta[property='og:title']`)
+          .attr(`content`);
+      }
 
-            var ctxt_title = $(data).filter("meta[property='og:title']").attr("content");
-            var ctxt_description = $(data).filter("meta[property='og:description']").attr("content");
-            var ctxt_image_url = $(data).filter("meta[property='og:image']").attr("content");
+      if (!store[contextUrl].description) {
+        store[contextUrl].description = html
+          .filter(`meta[property='og:description']`)
+          .attr(`content`);
+      }
 
-            ctxtCardGen(ctxt_image_url, ctxt_title, ctxt_description);
-        });
-    });
-
-    function ctxtCardGen(ctxt_image_url, ctxt_title, ctxt_description) {
-        isUrlValid(ctxt_image_url);
-        if (isUrlValid(ctxt_image_url)) {
-
-            $("#ctxt-card").append("<img src=\"" + ctxt_image_url + "\">");
-        }
-
-        if (ctxt_title != undefined) {
-            $("#ctxt-card").append("<p class=\"ctxt-title\">" + ctxt_title + "</p>");
-        }
-
-        if (ctxt_description != undefined) {
-            $("#ctxt-card").append("<p class=\"ctxt-description\">" + ctxt_description + "</p>");
-        }
-
-        console.log(ctxt_title);
-        console.log(ctxt_description);
-        console.log(ctxt_image_url);
-    }
-
-    function isUrlValid(url) {
-
-        var exp = /^(https?|s?ftp):\/\/(((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:)*@)?(((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5]))|((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?)(:\d*)?)(\/((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)+(\/(([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)*)*)?)?(\?((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|[\uE000-\uF8FF]|\/|\?)*)?(#((([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(%[\da-f]{2})|[!\$&'\(\)\*\+,;=]|:|@)|\/|\?)*)?$/i;
-
-        var match = exp.test(url);
-
-        if (match != 'true') {
-            console.log(match);
-        }
-    }
-
+      if (!store[contextUrl].imageUrl) {
+        store[contextUrl].imageUrl = html
+          .filter(`meta[property='og:image']`)
+          .attr(`content`);
+      }
+      const image = new Image();
+      image.src = store[contextUrl].imageUrl;
+      image.onload = () => {
+        instance.setContent(`<img width=100% src=${store[contextUrl].imageUrl}>
+          <p class="ctxt-title">${store[contextUrl].title}</p>
+          <p class="ctxt-description">${store[contextUrl].description}</p>`);
+      };
+    },
+  });
 });
